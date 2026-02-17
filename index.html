@@ -3,288 +3,690 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schwarzschild Black Hole — Ray Tracer</title>
+<title>Schwarzschild — Black Hole Ray Tracer</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#020407;--panel:#05080f;--border:#111d30;
-  --accent:#00d4ff;--accent2:#ff6020;--accent3:#ffc847;
-  --text:#7aa0c4;--textb:#cce0f5;--glow:rgba(0,212,255,.12);
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Rajdhani:wght@300;400;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #010204;
+  --panel: rgba(4, 9, 18, 0.96);
+  --border: rgba(0, 180, 255, 0.1);
+  --border-bright: rgba(0, 180, 255, 0.3);
+  --accent: #00b8ff;
+  --accent-dim: rgba(0,184,255,0.5);
+  --hot: #ff5500;
+  --warm: #ffaa00;
+  --text: rgba(140, 190, 230, 0.75);
+  --textb: rgba(200, 230, 255, 0.95);
+  --glow: rgba(0, 184, 255, 0.08);
+  --glow-strong: rgba(0, 184, 255, 0.18);
 }
-html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
-  font-family:'Space Mono',monospace;overflow:hidden;user-select:none}
-#app{display:flex;height:100vh;width:100vw}
-#cw{position:relative;flex:1;display:flex;align-items:center;
-  justify-content:center;background:#000;overflow:hidden}
-canvas{display:block;image-rendering:pixelated}
-#oi{position:absolute;top:16px;left:18px;font-family:'Orbitron',monospace;
-  font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--accent);
-  text-shadow:0 0 14px var(--accent);line-height:2;pointer-events:none}
-#rs{position:absolute;bottom:14px;left:18px;font-size:8px;
-  letter-spacing:.12em;color:rgba(0,212,255,.4);pointer-events:none}
-#ch{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:18px;height:18px;pointer-events:none;opacity:.2}
-#ch::before,#ch::after{content:'';position:absolute;background:var(--accent)}
-#ch::before{width:100%;height:1px;top:50%;left:0}
-#ch::after{height:100%;width:1px;left:50%;top:0}
-#pb{position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--border)}
-#pf{height:100%;background:linear-gradient(to right,var(--accent),var(--accent3));
-  width:0%;transition:width .04s;box-shadow:0 0 8px var(--accent)}
-#sb{width:292px;min-width:260px;background:var(--panel);
-  border-left:1px solid var(--border);display:flex;
-  flex-direction:column;overflow-y:auto;overflow-x:hidden}
-#sb::-webkit-scrollbar{width:3px}
-#sb::-webkit-scrollbar-track{background:transparent}
-#sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.sh{padding:22px 18px 14px;border-bottom:1px solid var(--border)}
-.sh h1{font-family:'Orbitron',monospace;font-size:12px;font-weight:900;
-  letter-spacing:.22em;color:var(--textb);text-transform:uppercase;margin-bottom:3px}
-.sh p{font-size:8px;letter-spacing:.09em;color:var(--text);opacity:.5;line-height:1.6}
-.sec{padding:16px 18px;border-bottom:1px solid var(--border)}
-.st{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:.2em;
-  color:var(--accent);text-transform:uppercase;margin-bottom:14px;
-  display:flex;align-items:center;gap:8px}
-.st::after{content:'';flex:1;height:1px;
-  background:linear-gradient(to right,var(--accent),transparent);opacity:.25}
-.cr{margin-bottom:14px}
-.cl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
-.cl span:first-child{font-size:9px;letter-spacing:.07em;color:var(--text)}
-.cl .v{font-size:10px;color:var(--accent);font-weight:700;min-width:52px;text-align:right}
-input[type=range]{-webkit-appearance:none;width:100%;height:2px;
-  background:var(--border);border-radius:2px;outline:none;cursor:pointer}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
-  border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);
-  border:2px solid var(--bg);cursor:pointer;transition:transform .1s}
-input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.3)}
-.tr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.tr span{font-size:9px;letter-spacing:.07em;color:var(--text)}
-.tog{position:relative;width:34px;height:17px}
-.tog input{opacity:0;width:0;height:0}
-.ts{position:absolute;inset:0;background:var(--border);border-radius:17px;cursor:pointer;transition:background .2s}
-.ts::before{content:'';position:absolute;width:11px;height:11px;left:3px;top:3px;
-  background:var(--text);border-radius:50%;transition:transform .2s,background .2s}
-.tog input:checked+.ts{background:rgba(0,212,255,.2)}
-.tog input:checked+.ts::before{transform:translateX(17px);background:var(--accent);box-shadow:0 0 6px var(--accent)}
-.rg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.rc{background:rgba(0,212,255,.025);border:1px solid var(--border);border-radius:3px;padding:9px}
-.rc .rl{font-size:7px;letter-spacing:.1em;color:var(--text);opacity:.55;margin-bottom:3px;text-transform:uppercase}
-.rc .rv{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;color:var(--accent3)}
-.br{display:flex;gap:7px;padding:14px 18px}
-button{flex:1;padding:9px;border:1px solid var(--border);background:transparent;
-  color:var(--text);font-family:'Space Mono',monospace;font-size:8px;
-  letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
-  border-radius:2px;transition:all .15s}
-button:hover{border-color:var(--accent);color:var(--accent);
-  background:var(--glow);box-shadow:0 0 10px var(--glow)}
-button.p{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.04)}
-button.p:hover{background:rgba(0,212,255,.12)}
-.leg{padding:12px 18px 18px;font-size:7.5px;letter-spacing:.07em;line-height:2.1;
-  color:var(--text);opacity:.45;border-top:1px solid var(--border);margin-top:auto}
-.leg b{color:var(--accent);font-weight:400}
-.leg .d{color:var(--accent2)}
-.leg .y{color:var(--accent3)}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+#app { display: flex; height: 100vh; width: 100vw; }
+
+/* ── VIEWPORT ────────────────────────────────────────────── */
+#vp {
+  position: relative;
+  flex: 1;
+  background: #000;
+  overflow: hidden;
+}
+
+/* Main ray-trace canvas */
+#c {
+  display: block;
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+}
+
+/* Post-process overlay canvas */
+#overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Vignette */
+#vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 50%,
+    rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Scan-lines */
+#scanlines {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.07) 2px,
+    rgba(0, 0, 0, 0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* HUD top-left */
+#hud {
+  position: absolute;
+  top: 20px; left: 22px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#hud-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.12em;
+  color: var(--textb);
+  text-shadow:
+    0 0 20px rgba(0,184,255,0.6),
+    0 0 60px rgba(0,184,255,0.2);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+#hud-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  opacity: 0.7;
+  text-shadow: 0 0 10px var(--accent);
+}
+
+/* Status bar */
+#status-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  background: rgba(0, 10, 25, 0.85);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 20px;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+#status-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--accent-dim);
+  flex: 1;
+}
+
+#progress-wrap {
+  width: 160px;
+  height: 3px;
+  background: rgba(0, 184, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#pf {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, var(--accent), var(--warm));
+  box-shadow: 0 0 6px var(--accent);
+  transition: width 0.04s linear;
+}
+
+/* Corner decorations */
+.corner {
+  position: absolute;
+  width: 20px; height: 20px;
+  pointer-events: none;
+  z-index: 10;
+}
+.corner::before, .corner::after {
+  content: '';
+  position: absolute;
+  background: var(--accent);
+  opacity: 0.4;
+}
+.corner-tl { top: 10px; left: 10px; }
+.corner-tl::before { width: 12px; height: 1px; top: 0; left: 0; }
+.corner-tl::after  { width: 1px; height: 12px; top: 0; left: 0; }
+.corner-tr { top: 10px; right: 10px; }
+.corner-tr::before { width: 12px; height: 1px; top: 0; right: 0; }
+.corner-tr::after  { width: 1px; height: 12px; top: 0; right: 0; }
+.corner-bl { bottom: 36px; left: 10px; }
+.corner-bl::before { width: 12px; height: 1px; bottom: 0; left: 0; }
+.corner-bl::after  { width: 1px; height: 12px; bottom: 0; left: 0; }
+.corner-br { bottom: 36px; right: 10px; }
+.corner-br::before { width: 12px; height: 1px; bottom: 0; right: 0; }
+.corner-br::after  { width: 1px; height: 12px; bottom: 0; right: 0; }
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+#sb {
+  width: 300px;
+  min-width: 268px;
+  background: var(--panel);
+  border-left: 1px solid var(--border-bright);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  backdrop-filter: blur(20px);
+  position: relative;
+}
+
+/* Subtle animated gradient on the border */
+#sb::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--accent) 20%,
+    var(--warm) 50%,
+    var(--accent) 80%,
+    transparent
+  );
+  opacity: 0.4;
+  animation: borderFlow 6s ease-in-out infinite;
+}
+
+@keyframes borderFlow {
+  0%, 100% { opacity: 0.2; transform: scaleY(1); }
+  50% { opacity: 0.6; transform: scaleY(0.95); }
+}
+
+#sb::-webkit-scrollbar { width: 3px; }
+#sb::-webkit-scrollbar-track { background: transparent; }
+#sb::-webkit-scrollbar-thumb { background: rgba(0,184,255,0.2); border-radius: 2px; }
+
+/* Header */
+.sb-header {
+  padding: 22px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.sb-header h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.18em;
+  color: var(--textb);
+  margin-bottom: 2px;
+}
+
+.sb-header p {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+/* Section */
+.sec {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sec-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.8;
+}
+
+.sec-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  opacity: 0.2;
+}
+
+/* Control row */
+.cr { margin-bottom: 13px; }
+.cr:last-child { margin-bottom: 0; }
+
+.cl {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 7px;
+}
+
+.cl-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.cl-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  min-width: 56px;
+  text-align: right;
+}
+
+/* Slider */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 2px;
+  background: rgba(0, 184, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #000;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 8px var(--accent), inset 0 0 4px rgba(0,184,255,0.3);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+input[type=range]:hover::-webkit-slider-thumb {
+  transform: scale(1.35);
+  box-shadow: 0 0 14px var(--accent), inset 0 0 6px rgba(0,184,255,0.5);
+}
+
+input[type=range]:active::-webkit-slider-thumb {
+  background: var(--accent);
+}
+
+/* Toggle */
+.tr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.tr-row:last-child { margin-bottom: 0; }
+
+.tr-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.tog { position: relative; width: 36px; height: 18px; }
+.tog input { opacity: 0; width: 0; height: 0; }
+.tog-track {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(0,184,255,0.15);
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tog-track::before {
+  content: '';
+  position: absolute;
+  width: 12px; height: 12px;
+  left: 2px; top: 2px;
+  background: rgba(140, 190, 230, 0.4);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+.tog input:checked + .tog-track {
+  background: rgba(0, 184, 255, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0,184,255,0.2);
+}
+.tog input:checked + .tog-track::before {
+  transform: translateX(18px);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* Readout grid */
+.rg { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.rc {
+  background: rgba(0, 184, 255, 0.02);
+  border: 1px solid var(--border);
+  padding: 9px 10px;
+  border-radius: 2px;
+  transition: border-color 0.2s;
+}
+.rc:hover { border-color: rgba(0,184,255,0.25); }
+.rc-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 0.15em;
+  color: var(--text);
+  opacity: 0.5;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.rc-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--warm);
+  letter-spacing: 0.05em;
+}
+
+/* Buttons */
+.btn-row {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px;
+}
+
+button {
+  flex: 1;
+  padding: 11px 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent);
+  pointer-events: none;
+}
+
+.btn-render {
+  background: rgba(0,184,255,0.06);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.btn-render:hover {
+  background: rgba(0,184,255,0.15);
+  box-shadow: 0 0 20px rgba(0,184,255,0.2), inset 0 0 10px rgba(0,184,255,0.05);
+}
+
+.btn-render.rendering {
+  animation: renderPulse 1.2s ease-in-out infinite;
+  border-color: var(--warm);
+  color: var(--warm);
+}
+
+@keyframes renderPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,170,0,0.3); }
+  50% { box-shadow: 0 0 20px rgba(255,170,0,0.5); }
+}
+
+.btn-rand {
+  background: transparent;
+  border: 1px solid rgba(0,184,255,0.2);
+  color: var(--text);
+}
+.btn-rand:hover {
+  border-color: rgba(0,184,255,0.5);
+  color: var(--textb);
+  background: rgba(0,184,255,0.05);
+}
+
+/* Legend */
+.legend {
+  margin-top: auto;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  opacity: 0.5;
+  line-height: 1.9;
+  font-weight: 300;
+}
+.legend span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.leg-blue { background: #7ae; }
+.leg-orange { background: #f62; }
+.leg-yellow { background: #fa3; }
+.leg-black { background: #222; border: 1px solid #444; }
 </style>
 </head>
 <body>
 <div id="app">
-<div id="cw">
+
+<!-- ── VIEWPORT ── -->
+<div id="vp">
   <canvas id="c"></canvas>
-  <div id="ch"></div>
-  <div id="oi">
-    SCHWARZSCHILD BLACK HOLE<br>
-    GRAVITATIONAL RAY TRACER<br>
-    <span style="color:var(--text);font-size:8px;opacity:.35">NULL GEODESICS · RK4 INTEGRATION</span>
-  </div>
-  <div id="rs">READY — CLICK RENDER</div>
-  <div id="pb"><div id="pf"></div></div>
-</div>
-<div id="sb">
-  <div class="sh">
-    <h1>Black Hole</h1>
-    <p>Traces photon paths through curved spacetime. Uses Schwarzschild metric null geodesics (Binet equation) with RK4 integration.</p>
+  <canvas id="overlay"></canvas>
+  <div id="vignette"></div>
+  <div id="scanlines"></div>
+
+  <!-- Corner accents -->
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-title">SCHWARZSCHILD</div>
+    <div id="hud-sub">NULL GEODESIC RAY TRACER &nbsp;·&nbsp; RK4 INTEGRATION</div>
   </div>
 
+  <!-- Status bar -->
+  <div id="status-bar">
+    <div id="status-text">READY</div>
+    <div id="progress-wrap"><div id="pf"></div></div>
+  </div>
+</div>
+
+<!-- ── SIDEBAR ── -->
+<div id="sb">
+  <div class="sb-header">
+    <h1>Configuration</h1>
+    <p>Schwarzschild metric · Binet equation · Keplerian disk<br>Doppler, gravitational redshift &amp; beaming</p>
+  </div>
+
+  <!-- Spacetime -->
   <div class="sec">
-    <div class="st">Spacetime</div>
+    <div class="sec-title">Spacetime</div>
     <div class="cr">
-      <div class="cl"><span>Mass (M, G=c=1)</span><span class="v" id="vm">1.00</span></div>
+      <div class="cl"><span class="cl-label">Mass (M)</span><span class="cl-val" id="vm">1.00</span></div>
       <input type="range" id="sm" min="0.3" max="3" step="0.05" value="1">
     </div>
     <div class="cr">
-      <div class="cl"><span>Camera Distance</span><span class="v" id="vd">20 M</span></div>
+      <div class="cl"><span class="cl-label">Camera Distance</span><span class="cl-val" id="vd">20 M</span></div>
       <input type="range" id="sd" min="8" max="60" step="0.5" value="20">
     </div>
     <div class="cr">
-      <div class="cl"><span>Inclination (° from disk)</span><span class="v" id="vi">80°</span></div>
+      <div class="cl"><span class="cl-label">Inclination</span><span class="cl-val" id="vi">80°</span></div>
       <input type="range" id="si" min="2" max="89" step="1" value="80">
     </div>
     <div class="cr">
-      <div class="cl"><span>Field of View</span><span class="v" id="vf">55°</span></div>
+      <div class="cl"><span class="cl-label">Field of View</span><span class="cl-val" id="vf">55°</span></div>
       <input type="range" id="sf" min="15" max="110" step="1" value="55">
     </div>
   </div>
 
+  <!-- Disk -->
   <div class="sec">
-    <div class="st">Accretion Disk</div>
-    <div class="tr">
-      <span>Show Disk</span>
-      <label class="tog"><input type="checkbox" id="td" checked><span class="ts"></span></label>
+    <div class="sec-title">Accretion Disk</div>
+    <div class="tr-row">
+      <span class="tr-label">Show Disk</span>
+      <label class="tog"><input type="checkbox" id="td" checked><span class="tog-track"></span></label>
     </div>
-    <div class="cr">
-      <div class="cl"><span>Inner Radius</span><span class="v" id="vri">6.0 M</span></div>
+    <div class="cr" style="margin-top:10px">
+      <div class="cl"><span class="cl-label">Inner Radius</span><span class="cl-val" id="vri">6.0 M</span></div>
       <input type="range" id="sri" min="2.5" max="12" step="0.25" value="6">
     </div>
     <div class="cr">
-      <div class="cl"><span>Outer Radius</span><span class="v" id="vro">18 M</span></div>
+      <div class="cl"><span class="cl-label">Outer Radius</span><span class="cl-val" id="vro">18 M</span></div>
       <input type="range" id="sro" min="8" max="45" step="0.5" value="18">
     </div>
     <div class="cr">
-      <div class="cl"><span>Brightness</span><span class="v" id="vb">1.0×</span></div>
+      <div class="cl"><span class="cl-label">Brightness</span><span class="cl-val" id="vb">1.0×</span></div>
       <input type="range" id="sbr" min="0.2" max="5" step="0.1" value="1">
     </div>
   </div>
 
+  <!-- Effects -->
   <div class="sec">
-    <div class="st">Effects</div>
-    <div class="tr">
-      <span>Doppler Shift</span>
-      <label class="tog"><input type="checkbox" id="tdop" checked><span class="ts"></span></label>
+    <div class="sec-title">Relativistic Effects</div>
+    <div class="tr-row">
+      <span class="tr-label">Doppler Shift</span>
+      <label class="tog"><input type="checkbox" id="tdop" checked><span class="tog-track"></span></label>
     </div>
-    <div class="tr">
-      <span>Relativistic Beaming</span>
-      <label class="tog"><input type="checkbox" id="tbeam" checked><span class="ts"></span></label>
+    <div class="tr-row">
+      <span class="tr-label">Relativistic Beaming</span>
+      <label class="tog"><input type="checkbox" id="tbeam" checked><span class="tog-track"></span></label>
     </div>
-    <div class="tr">
-      <span>Gravitational Redshift</span>
-      <label class="tog"><input type="checkbox" id="tgrav" checked><span class="ts"></span></label>
+    <div class="tr-row">
+      <span class="tr-label">Gravitational Redshift</span>
+      <label class="tog"><input type="checkbox" id="tgrav" checked><span class="tog-track"></span></label>
     </div>
-    <div class="tr">
-      <span>Star Field</span>
-      <label class="tog"><input type="checkbox" id="tstars" checked><span class="ts"></span></label>
+    <div class="tr-row">
+      <span class="tr-label">Star Field</span>
+      <label class="tog"><input type="checkbox" id="tstars" checked><span class="tog-track"></span></label>
+    </div>
+    <div class="tr-row">
+      <span class="tr-label">Bloom Post-Process</span>
+      <label class="tog"><input type="checkbox" id="tbloom" checked><span class="tog-track"></span></label>
     </div>
   </div>
 
+  <!-- Render Quality -->
   <div class="sec">
-    <div class="st">Render Quality</div>
+    <div class="sec-title">Render Quality</div>
     <div class="cr">
-      <div class="cl"><span>Integration Steps</span><span class="v" id="vst">800</span></div>
+      <div class="cl"><span class="cl-label">Integration Steps</span><span class="cl-val" id="vst">800</span></div>
       <input type="range" id="sst" min="150" max="2000" step="50" value="800">
     </div>
     <div class="cr">
-      <div class="cl"><span>Step Size (Δφ)</span><span class="v" id="vdp">0.016</span></div>
+      <div class="cl"><span class="cl-label">Step Size (Δφ)</span><span class="cl-val" id="vdp">0.016</span></div>
       <input type="range" id="sdp" min="0.004" max="0.04" step="0.001" value="0.016">
     </div>
     <div class="cr">
-      <div class="cl"><span>Resolution Scale</span><span class="v" id="vres">1×</span></div>
+      <div class="cl"><span class="cl-label">Resolution</span><span class="cl-val" id="vres">1×</span></div>
       <input type="range" id="sres" min="1" max="3" step="1" value="1">
     </div>
   </div>
 
+  <!-- Readouts -->
   <div class="sec">
-    <div class="st">Physics Readout</div>
+    <div class="sec-title">Physics Readout</div>
     <div class="rg">
-      <div class="rc"><div class="rl">Event Horizon</div><div class="rv" id="reh">2.00 M</div></div>
-      <div class="rc"><div class="rl">Photon Sphere</div><div class="rv" id="rph">3.00 M</div></div>
-      <div class="rc"><div class="rl">ISCO</div><div class="rv" id="risco">6.00 M</div></div>
-      <div class="rc"><div class="rl">r_cam / r_s</div><div class="rv" id="rcam">10.0×</div></div>
+      <div class="rc"><div class="rc-label">Event Horizon</div><div class="rc-val" id="reh">2.00 M</div></div>
+      <div class="rc"><div class="rc-label">Photon Sphere</div><div class="rc-val" id="rph">3.00 M</div></div>
+      <div class="rc"><div class="rc-label">ISCO</div><div class="rc-val" id="risco">6.00 M</div></div>
+      <div class="rc"><div class="rc-label">r_cam / r_s</div><div class="rc-val" id="rcam">10.0×</div></div>
     </div>
   </div>
 
-  <div class="br">
-    <button class="p" onclick="startRender()">▶ Render</button>
-    <button onclick="randomize()">⟳ Randomize</button>
+  <!-- Buttons -->
+  <div class="btn-row">
+    <button class="btn-render" id="btn-render" onclick="startRender()">▶ &nbsp;RENDER</button>
+    <button class="btn-rand" onclick="randomize()">⟳ &nbsp;RAND</button>
   </div>
 
-  <div class="leg">
-    <b>Blue-white</b> — lensed background stars<br>
-    <span class="d">Orange/red</span> — near-side disk (blue-shifted)<br>
-    <span class="y">Yellow/dim</span> — far-side disk (red-shifted)<br>
-    <b>Black</b> — event horizon (r ≤ 2M)
+  <!-- Legend -->
+  <div class="legend">
+    <span class="leg-blue"></span>Lensed background stars<br>
+    <span class="leg-orange"></span>Near-side disk (blueshifted)<br>
+    <span class="leg-yellow"></span>Far-side disk (redshifted)<br>
+    <span class="leg-black"></span>Event horizon (r ≤ 2M)
   </div>
 </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════
-//  SCHWARZSCHILD BLACK HOLE RAY TRACER
-//
-//  Core physics:
-//  ─────────────
-//  Null geodesic in Schwarzschild spacetime (G=c=1):
-//    ds² = -(1-2M/r)dt² + dr²/(1-2M/r) + r²dΩ²
-//
-//  Binet equation for photon orbit (u = 1/r, L = angular momentum):
-//    d²u/dφ² + u = 3M·u²
-//
-//  This is exact for equatorial orbits. We lift to 3D by tracking
-//  the photon's position in the plane defined by its initial
-//  position + velocity vectors (the "orbital plane").
-//
-//  Disk intersection: continuous signed-distance tracking along
-//  the ray path. Sign change = disk crossing.
-//
-//  Effects:
-//  ─────────
-//  • Gravitational redshift: grav = sqrt(1 - 2M/r)
-//  • Orbital Doppler: v_orb = sqrt(M/r),  δ = 1/(1 + v·sin φ)
-//  • Relativistic beaming: I_obs = I_em · δ³  (Penrose-Terrell)
-// ═══════════════════════════════════════════════════════════════════
+'use strict';
+// ════════════════════════════════════════════════════════════════════
+//  SCHWARZSCHILD BLACK HOLE — RAY TRACER
+//  Binet null geodesic equation + RK4 + post-process bloom
+// ════════════════════════════════════════════════════════════════════
 
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let W, H, oW, oH, offscr, octx;
+const c      = document.getElementById('c');
+const ctx    = c.getContext('2d');
+const ov     = document.getElementById('overlay');
+const octx2  = ov.getContext('2d');
+let W, H, oW, oH, offscr, offCtx;
 
-// ─── Stars ────────────────────────────────────────────────────────
-const NUM_STARS = 1400;
-const starAz  = new Float32Array(NUM_STARS);
-const starEl  = new Float32Array(NUM_STARS);
-const starB   = new Float32Array(NUM_STARS);
-const starHue = new Float32Array(NUM_STARS);
-const starSz  = new Uint8Array(NUM_STARS);
+// ── Stars ─────────────────────────────────────────────────────────
+const NS = 1600;
+const sAz = new Float32Array(NS), sEl = new Float32Array(NS);
+const sB  = new Float32Array(NS), sH  = new Float32Array(NS);
+const sSz = new Uint8Array(NS);
+for (let i = 0; i < NS; i++) {
+  sAz[i] = (Math.random()*2-1) * Math.PI;
+  sEl[i] = (Math.random()-0.5) * Math.PI;
+  sB[i]  = Math.pow(Math.random(), 0.45);
+  sH[i]  = Math.random();
+  sSz[i] = Math.random() < 0.06 ? 2 : 1;
+}
 
-(function genStars() {
-  for (let i = 0; i < NUM_STARS; i++) {
-    starAz[i]  = (Math.random() * 2 - 1) * Math.PI;
-    starEl[i]  = (Math.random() - 0.5) * Math.PI;
-    starB[i]   = Math.pow(Math.random(), 0.5);
-    starHue[i] = Math.random();
-    starSz[i]  = Math.random() < 0.06 ? 2 : 1;
-  }
-})();
-
-// ─── Resize ───────────────────────────────────────────────────────
+// ── Resize ────────────────────────────────────────────────────────
 function resize() {
-  const cw = document.getElementById('cw');
-  W = cw.clientWidth; H = cw.clientHeight;
-  canvas.width = W; canvas.height = H;
-  const sc = parseInt(document.getElementById('sres').value) || 1;
-  oW = Math.max(1, Math.floor(W / sc));
-  oH = Math.max(1, Math.floor(H / sc));
+  const vp = document.getElementById('vp');
+  W = vp.clientWidth; H = vp.clientHeight;
+  c.width  = W; c.height  = H;
+  ov.width = W; ov.height = H;
+  const sc = +g('sres').value || 1;
+  oW = Math.max(1, Math.floor(W/sc));
+  oH = Math.max(1, Math.floor(H/sc));
   offscr = document.createElement('canvas');
   offscr.width = oW; offscr.height = oH;
-  octx = offscr.getContext('2d');
+  offCtx = offscr.getContext('2d');
 }
 window.addEventListener('resize', () => { resize(); startRender(); });
 
-// ─── Params ───────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────
 const g = id => document.getElementById(id);
+
 function params() {
   return {
-    M:      +g('sm').value,
-    dist:   +g('sd').value,
-    incl:   +g('si').value * Math.PI/180,
-    fov:    +g('sf').value * Math.PI/180,
-    rin:    +g('sri').value,
-    rout:   +g('sro').value,
-    bright: +g('sbr').value,
-    steps:  +g('sst').value,
-    dphi:   +g('sdp').value,
-    disk:    g('td').checked,
-    doppler: g('tdop').checked,
-    beam:    g('tbeam').checked,
-    grav:    g('tgrav').checked,
-    stars:   g('tstars').checked,
+    M:       +g('sm').value,
+    dist:    +g('sd').value,
+    incl:    +g('si').value * Math.PI/180,
+    fov:     +g('sf').value * Math.PI/180,
+    rin:     +g('sri').value,
+    rout:    +g('sro').value,
+    bright:  +g('sbr').value,
+    steps:   +g('sst').value,
+    dphi:    +g('sdp').value,
+    disk:     g('td').checked,
+    doppler:  g('tdop').checked,
+    beam:     g('tbeam').checked,
+    grav:     g('tgrav').checked,
+    stars:    g('tstars').checked,
+    bloom:    g('tbloom').checked,
   };
 }
 
@@ -292,212 +694,167 @@ function updateReadouts(p) {
   g('reh').textContent   = (2*p.M).toFixed(2)+' M';
   g('rph').textContent   = (3*p.M).toFixed(2)+' M';
   g('risco').textContent = (6*p.M).toFixed(2)+' M';
-  g('rcam').textContent  = (p.dist/(2)).toFixed(1)+'×';
+  g('rcam').textContent  = (p.dist/2).toFixed(1)+'×';
 }
 
-// ─── Slider wiring ────────────────────────────────────────────────
+// Slider wiring
 [
-  ['sm','vm',  v=>(+v).toFixed(2)],
-  ['sd','vd',  v=>(+v).toFixed(1)+' M'],
-  ['si','vi',  v=>v+'°'],
-  ['sf','vf',  v=>v+'°'],
-  ['sri','vri',v=>(+v).toFixed(2)+' M'],
-  ['sro','vro',v=>(+v).toFixed(1)+' M'],
-  ['sbr','vb', v=>(+v).toFixed(1)+'×'],
-  ['sst','vst',v=>v],
-  ['sdp','vdp',v=>(+v).toFixed(3)],
+  ['sm','vm',   v=>(+v).toFixed(2)],
+  ['sd','vd',   v=>(+v).toFixed(1)+' M'],
+  ['si','vi',   v=>v+'°'],
+  ['sf','vf',   v=>v+'°'],
+  ['sri','vri', v=>(+v).toFixed(2)+' M'],
+  ['sro','vro', v=>(+v).toFixed(1)+' M'],
+  ['sbr','vb',  v=>(+v).toFixed(1)+'×'],
+  ['sst','vst', v=>v],
+  ['sdp','vdp', v=>(+v).toFixed(3)],
   ['sres','vres',v=>v+'×'],
 ].forEach(([id,vid,fmt])=>{
-  g(id).addEventListener('input',()=>{ g(vid).textContent=fmt(g(id).value); });
+  g(id).addEventListener('input', ()=>{ g(vid).textContent = fmt(g(id).value); });
 });
 g('sres').addEventListener('input', resize);
 
-// ═══════════════════════════════════════════════════════════════════
-//  GEODESIC INTEGRATION
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+//  CORE GEODESIC TRACER
+// ════════════════════════════════════════════════════════════════════
 
 function traceRay(ox, oy, oz, dx, dy, dz, p) {
   const M   = p.M;
-  const rs  = 2 * M;
-  const rmax = p.dist * M * 4 + 100;
+  const rs  = 2*M;
+  const rmax = p.dist*M*4 + 100;
 
-  // Camera distance
   const r0 = Math.sqrt(ox*ox + oy*oy + oz*oz);
   if (r0 < rs) return { hit:'bh' };
 
-  // Unit radial (outward from BH to camera)
   const rx0 = ox/r0, ry0 = oy/r0, rz0 = oz/r0;
+  const cosA = -(dx*rx0 + dy*ry0 + dz*rz0);
+  const sinA  = Math.sqrt(Math.max(0, 1 - cosA*cosA));
 
-  // cosine of angle between ray direction and inward radial (-rhat)
-  // negative because inward radial is -rhat
-  const cosAlpha = -(dx*rx0 + dy*ry0 + dz*rz0);
-  const sin2Alpha = Math.max(0, 1 - cosAlpha*cosAlpha);
-  const sinAlpha  = Math.sqrt(sin2Alpha);
-
-  // Impact parameter b = r₀ sin(α)
-  const b = r0 * sinAlpha;
-
-  // Near-radial: photon aimed nearly directly at/away from BH
-  if (sinAlpha < 1e-5) {
-    return cosAlpha > 0
+  if (sinA < 1e-5) {
+    return cosA > 0
       ? { hit:'bh' }
       : { hit:'sky', az:Math.atan2(dy,dx), el:Math.asin(Math.max(-1,Math.min(1,dz))), phi:0 };
   }
 
-  // Critical impact parameter: b_crit = 3√3·M ≈ 5.196·M
-  // Photons with b < b_crit are captured by the BH
-  // (for geodesics starting at infinity; starting at finite r₀ is slightly different)
-
-  // ── Orbital plane basis ──────────────────────────────────────
-  // eR: unit vector from BH toward camera (radial)
-  // eT: unit vector in tangential direction of ray
-  const eRx = rx0, eRy = ry0, eRz = rz0;
-
-  // Transverse component of direction
-  const dotDR = dx*eRx + dy*eRy + dz*eRz;
-  let tx = dx - dotDR*eRx;
-  let ty = dy - dotDR*eRy;
-  let tz = dz - dotDR*eRz;
+  // Tangential direction (perpendicular to radial, in ray plane)
+  const dot = dx*rx0 + dy*ry0 + dz*rz0;
+  let tx = dx-dot*rx0, ty = dy-dot*ry0, tz = dz-dot*rz0;
   const tm = Math.sqrt(tx*tx+ty*ty+tz*tz);
   tx/=tm; ty/=tm; tz/=tm;
   const eTx=tx, eTy=ty, eTz=tz;
+  const eRz = rz0;
 
-  // Position at angle φ: P(φ) = r·(cos(φ)·eR + sin(φ)·eT)
-  // Disk is at z=0 plane.
-  // Z-component of P: Pz(φ) = r·(cos(φ)·eRz + sin(φ)·eTz)
+  // Binet ICs
+  let u  = 1/r0;
+  let du = -(1/(r0*r0))*(-r0*cosA/sinA);
 
-  // ── Binet initial conditions ──────────────────────────────────
-  let u  = 1/r0;                          // u₀ = 1/r₀
-  // du/dφ₀: from the relation dr/dφ = -du/dφ / u²
-  // at start, dr/dφ = r₀·cosα/sinα  (negative if moving inward)
-  // du/dφ = -u²·dr/dφ
-  let du = -(1/(r0*r0)) * (-r0 * cosAlpha / sinAlpha);
-  // If cosAlpha > 0: ray is pointing toward BH, dr/dφ < 0, du/dφ > 0 → u increases → r decreases ✓
-
-  // ── RK4 integration ──────────────────────────────────────────
   const dPhi = p.dphi;
   const N    = p.steps;
-  const binet = u_ => 3*M*u_*u_ - u_;  // d²u/dφ²
+  const binet = u_ => 3*M*u_*u_ - u_;
 
   let phi = 0;
-  let prevPz = r0 * eRz;  // initial z-component of position
+  let prevPz = r0*eRz;
 
   for (let i = 0; i < N; i++) {
     // RK4
-    const k1u  = du,            k1du = binet(u);
-    const u2   = u +dPhi*.5*k1u, du2 = du+dPhi*.5*k1du;
-    const k2u  = du2,           k2du = binet(u2);
-    const u3   = u +dPhi*.5*k2u, du3 = du+dPhi*.5*k2du;
-    const k3u  = du3,           k3du = binet(u3);
-    const u4   = u +dPhi*k3u,    du4 = du+dPhi*k3du;
-    const k4u  = du4,           k4du = binet(u4);
+    const k1u = du,              k1du = binet(u);
+    const u2  = u+dPhi*.5*k1u,  du2  = du+dPhi*.5*k1du;
+    const k2u = du2,             k2du = binet(u2);
+    const u3  = u+dPhi*.5*k2u,  du3  = du+dPhi*.5*k2du;
+    const k3u = du3,             k3du = binet(u3);
+    const u4  = u+dPhi*k3u,     du4  = du+dPhi*k3du;
+    const k4u = du4,             k4du = binet(u4);
 
-    u  += dPhi/6*(k1u  + 2*k2u  + 2*k3u  + k4u);
-    du += dPhi/6*(k1du + 2*k2du + 2*k3du + k4du);
+    u  += dPhi/6*(k1u+2*k2u+2*k3u+k4u);
+    du += dPhi/6*(k1du+2*k2du+2*k3du+k4du);
     phi += dPhi;
 
     if (!isFinite(u) || u < 0) break;
     const r = 1/u;
 
-    // Absorbed
     if (r <= rs*1.01) return { hit:'bh' };
 
-    // Escaped
     if (r > rmax) {
-      const az = Math.atan2(eTy, eTx) * Math.sign(sinAlpha) + phi*0.18;
-      const el = Math.asin(Math.max(-1,Math.min(1, eTz*Math.sin(phi) + eRz*Math.cos(phi))));
+      const az = Math.atan2(eTy,eTx)*Math.sign(sinA)+phi*0.18;
+      const el = Math.asin(Math.max(-1,Math.min(1, eTz*Math.sin(phi)+eRz*Math.cos(phi))));
       return { hit:'sky', az, el, phi };
     }
 
-    // Disk crossing (z=0 plane)
     if (p.disk) {
       const curPz = r*(Math.cos(phi)*eRz + Math.sin(phi)*eTz);
-      if (prevPz * curPz < 0) {
-        // Interpolate crossing radius
-        const t = Math.abs(prevPz) / (Math.abs(prevPz) + Math.abs(curPz));
-        const crossPhi = phi - dPhi*(1-t);
-        const crossU   = u - du*dPhi*(1-t);  // approx
-        const crossR   = 1/Math.max(1e-6, crossU);
-        const rin  = p.rin  * M;
-        const rout = p.rout * M;
-        if (crossR >= rin && crossR <= rout) {
-          return { hit:'disk', r:crossR, phi:crossPhi, near: prevPz > 0 };
+      if (prevPz*curPz < 0) {
+        const t_ = Math.abs(prevPz)/(Math.abs(prevPz)+Math.abs(curPz));
+        const cPhi = phi-dPhi*(1-t_);
+        const cR   = 1/Math.max(1e-6, u-du*dPhi*(1-t_));
+        const rin  = p.rin*M, rout = p.rout*M;
+        if (cR >= rin && cR <= rout) {
+          return { hit:'disk', r:cR, phi:cPhi, near: prevPz > 0 };
         }
       }
       prevPz = curPz;
     }
   }
 
-  // Out of steps
-  const az = Math.atan2(eTy,eTx) + phi*0.1;
+  const az = Math.atan2(eTy,eTx)+phi*0.1;
   const el = Math.asin(Math.max(-1,Math.min(1,dz)));
   return { hit:'sky', az, el, phi };
 }
 
-// ─── Sky color ─────────────────────────────────────────────────────
-const STAR_THRESH = 0.038;
-function skyCol(az, el, p) {
+// ── Star lookup ───────────────────────────────────────────────────
+const STAR_R = 0.036;
+function skyPacked(az, el, p) {
   if (!p.stars) return 0;
-  let best=0, bestH=0;
-  for (let i=0; i<NUM_STARS; i++) {
-    const daz = ((az-starAz[i]+Math.PI*3) % (Math.PI*2)) - Math.PI;
-    const del = el-starEl[i];
-    const d   = Math.sqrt(daz*daz + del*del);
-    const th  = starSz[i]===2 ? STAR_THRESH*1.5 : STAR_THRESH;
+  let best=0, bH=0;
+  for (let i=0; i<NS; i++) {
+    const daz = ((az-sAz[i]+Math.PI*3)%(Math.PI*2))-Math.PI;
+    const del = el-sEl[i];
+    const d   = Math.sqrt(daz*daz+del*del);
+    const th  = sSz[i]===2 ? STAR_R*1.6 : STAR_R;
     if (d < th) {
-      const v = (1-d/th)*starB[i];
-      if (v > best) { best=v; bestH=starHue[i]; }
+      const v = (1-d/th)*sB[i];
+      if (v > best) { best=v; bH=sH[i]; }
     }
   }
   if (best < 0.01) return 0;
-  // pack RGB
   let R,G,B;
-  if (bestH<.15){R=180;G=200;B=255;}
-  else if(bestH<.45){R=220;G=225;B=255;}
-  else if(bestH<.65){R=255;G=255;B=240;}
-  else{R=255;G=225;B=170;}
+  if (bH<.15){R=175;G=205;B=255;}
+  else if(bH<.4){R=215;G=225;B=255;}
+  else if(bH<.65){R=255;G=255;B=245;}
+  else{R=255;G=225;B=165;}
   return (Math.min(255,R*best)<<16)|(Math.min(255,G*best)<<8)|Math.min(255,B*best);
 }
 
-// ─── Disk color ────────────────────────────────────────────────────
-function diskCol(r, phi, near, p) {
-  const M   = p.M;
-  const rin  = p.rin  * M;
-  const rout = p.rout * M;
-  const t   = Math.max(1e-3, Math.min(1, (r-rin)/(rout-rin)));
+// ── Disk color ────────────────────────────────────────────────────
+function diskPacked(r, phi, near, p) {
+  const M = p.M;
+  const rin=p.rin*M, rout=p.rout*M;
+  const t = Math.max(1e-3, Math.min(1, (r-rin)/(rout-rin)));
 
-  // Temperature: hotter at inner edge (T ~ r^-3/4)
-  const temp = Math.pow(t, -0.7);
+  const temp = Math.pow(t, -0.68);
+  const grav  = p.grav ? Math.sqrt(Math.max(0.01, 1-2*M/Math.max(2.05*M,r))) : 1;
+  const vorb  = Math.sqrt(M/Math.max(M*1.01, r));
 
-  // Gravitational redshift
-  const grav = p.grav ? Math.sqrt(Math.max(0.01, 1 - 2*M/Math.max(2.05*M,r))) : 1;
-
-  // Doppler from Keplerian rotation (disk rotates in equatorial plane)
-  // sin(phi) gives line-of-sight projection
-  const v_orb = Math.sqrt(M / Math.max(M*1.01, r));
-  let doppler = 1;
+  let dop = 1;
   if (p.doppler) {
-    doppler = 1 / (1 + v_orb * Math.sin(phi));
-    if (p.beam) doppler = Math.pow(Math.max(0.01, doppler), 3);
-    doppler = Math.max(0.03, Math.min(6, doppler));
+    dop = 1/(1+vorb*Math.sin(phi));
+    if (p.beam) dop = Math.pow(Math.max(0.01,dop), 3);
+    dop = Math.max(0.03, Math.min(7, dop));
   }
 
-  let I = temp * grav * doppler * p.bright;
-  if (!near) I *= 0.5;
+  let I = temp*grav*dop*p.bright;
+  if (!near) I *= 0.48;
 
-  // Blackbody color approximation
-  // t=0 (inner): 0.15 → very hot, t=1 (outer): cool red
+  // Blackbody gradient
   let R,G,B;
-  if (t<0.08){R=210;G=230;B=255;}
-  else if(t<0.2){const f=(t-0.08)/.12;R=Math.round(210+45*f);G=Math.round(230-20*f);B=Math.round(255-90*f);}
-  else if(t<0.4){const f=(t-0.2)/.2;R=255;G=Math.round(210-90*f);B=Math.round(165-120*f);}
-  else if(t<0.65){const f=(t-0.4)/.25;R=255;G=Math.round(120-80*f);B=Math.round(45-35*f);}
-  else{const f=(t-0.65)/.35;R=Math.round(255-70*f);G=Math.round(40-30*f);B=10;}
+  if (t<0.07){R=215;G=235;B=255;}
+  else if(t<0.18){const f=(t-0.07)/.11;R=Math.round(215+40*f);G=Math.round(235-25*f);B=Math.round(255-100*f);}
+  else if(t<0.38){const f=(t-0.18)/.2;R=255;G=Math.round(210-95*f);B=Math.round(155-115*f);}
+  else if(t<0.62){const f=(t-0.38)/.24;R=255;G=Math.round(115-75*f);B=Math.round(40-30*f);}
+  else{const f=(t-0.62)/.38;R=Math.round(255-65*f);G=Math.round(40-28*f);B=10;}
 
-  // Color-shift for doppler
   if (p.doppler) {
-    if (doppler>1.3){const bf=Math.min(1,(doppler-1.3)/3);B=Math.min(255,B+Math.round(bf*130));G=Math.min(255,G+Math.round(bf*60));}
-    else if(doppler<0.7){const rf=Math.min(1,(0.7-doppler)/.5);G=Math.max(0,G-Math.round(rf*70));B=Math.max(0,B-Math.round(rf*60));}
+    if (dop>1.25){const bf=Math.min(1,(dop-1.25)/3.5);B=Math.min(255,B+Math.round(bf*140));G=Math.min(255,G+Math.round(bf*65));}
+    else if(dop<0.65){const rf=Math.min(1,(0.65-dop)/.55);G=Math.max(0,G-Math.round(rf*75));B=Math.max(0,B-Math.round(rf*65));}
   }
 
   return (Math.min(255,Math.max(0,Math.round(R*I)))<<16)|
@@ -505,112 +862,197 @@ function diskCol(r, phi, near, p) {
           Math.min(255,Math.max(0,Math.round(B*I)));
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  MAIN RENDERER
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+//  POST-PROCESS: BLOOM
+//  After raytracing, draw a layered glow on the overlay canvas:
+//  1. Disk corona glow (ellipse aligned to disk plane angle)
+//  2. Event horizon shadow rim
+//  3. Photon sphere ring
+// ════════════════════════════════════════════════════════════════════
+
+function drawBloom(p, camX, camY, camR, projW, projH) {
+  octx2.clearRect(0, 0, W, H);
+  if (!p.bloom) return;
+
+  // Find the screen-space center of the BH (always center of image)
+  const cx = W/2, cy = H/2;
+
+  // Estimate the apparent size of the event horizon in pixels
+  // Angular diameter ≈ 2 * arctan(r_s / dist) in radians * (pixels/radian)
+  const tanFov   = Math.tan(p.fov/2);
+  const pixPerRad = (H/2) / tanFov;
+  const rs        = 2*p.M;
+  const bh_r_px   = Math.max(4, (rs / (p.dist*p.M)) * pixPerRad * 0.5);
+
+  // ── 1. Diffuse disk glow (orange arc) ───────────────────────
+  const diskMidR = (p.rin + p.rout) * 0.5 * p.M;
+  const diskR_px = Math.max(20, (diskMidR / (p.dist*p.M)) * pixPerRad);
+  const incl     = p.incl;  // inclination angle
+
+  // Ellipse: horizontal extent = full disk radius, vertical = compressed by inclination
+  const ry_disk = diskR_px * Math.sin(incl);  // compressed in vertical
+  const rx_disk = diskR_px;
+
+  // Draw glowing disk corona as ellipse gradient
+  for (let layer = 0; layer < 3; layer++) {
+    const spread = [2.0, 1.3, 0.7][layer];
+    const alpha  = [0.025, 0.04, 0.06][layer];
+    octx2.save();
+    octx2.translate(cx, cy);
+    octx2.scale(1, Math.max(0.05, ry_disk / rx_disk));
+    const grad = octx2.createRadialGradient(0,0, bh_r_px, 0,0, rx_disk*spread);
+    grad.addColorStop(0,   `rgba(255,120,30,0)`);
+    grad.addColorStop(0.35,`rgba(255,100,20,${alpha*1.5})`);
+    grad.addColorStop(0.6, `rgba(255,160,40,${alpha})`);
+    grad.addColorStop(1,   `rgba(200,80,10,0)`);
+    octx2.globalCompositeOperation = 'screen';
+    octx2.fillStyle = grad;
+    octx2.beginPath();
+    octx2.arc(0, 0, rx_disk*spread, 0, Math.PI*2);
+    octx2.fill();
+    octx2.restore();
+  }
+
+  // ── 2. Hot inner ring (ISCO glow) ─────────────────────────────
+  const isco_r  = 6*p.M;
+  const isco_px = Math.max(8, (isco_r / (p.dist*p.M)) * pixPerRad);
+  octx2.save();
+  octx2.translate(cx, cy);
+  octx2.scale(1, Math.max(0.05, Math.sin(incl)));
+  const innerGrad = octx2.createRadialGradient(0,0, isco_px*0.6, 0,0, isco_px*1.4);
+  innerGrad.addColorStop(0, 'rgba(255,200,100,0)');
+  innerGrad.addColorStop(0.4,'rgba(255,180,60,0.08)');
+  innerGrad.addColorStop(0.7,'rgba(255,120,20,0.06)');
+  innerGrad.addColorStop(1,  'rgba(255,60,0,0)');
+  octx2.globalCompositeOperation = 'screen';
+  octx2.fillStyle = innerGrad;
+  octx2.beginPath();
+  octx2.arc(0, 0, isco_px*1.4, 0, Math.PI*2);
+  octx2.fill();
+  octx2.restore();
+
+  // ── 3. Event horizon ambient glow ─────────────────────────────
+  octx2.save();
+  const bhGrad = octx2.createRadialGradient(cx,cy, bh_r_px*0.2, cx,cy, bh_r_px*3.5);
+  bhGrad.addColorStop(0,   'rgba(0,0,0,0.6)');
+  bhGrad.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+  bhGrad.addColorStop(1,   'rgba(0,0,0,0)');
+  octx2.globalCompositeOperation = 'multiply';
+  octx2.fillStyle = bhGrad;
+  octx2.beginPath();
+  octx2.arc(cx, cy, bh_r_px*3.5, 0, Math.PI*2);
+  octx2.fill();
+  octx2.restore();
+
+  // ── 4. Photon sphere ring accent ──────────────────────────────
+  const ps_r  = 3*p.M;
+  const ps_px = Math.max(6, (ps_r / (p.dist*p.M)) * pixPerRad);
+  octx2.save();
+  octx2.translate(cx, cy);
+  octx2.scale(1, Math.max(0.05, Math.sin(incl)*0.5+0.5));
+  octx2.globalCompositeOperation = 'screen';
+  octx2.strokeStyle = 'rgba(0,180,255,0.04)';
+  octx2.lineWidth   = ps_px * 0.4;
+  octx2.shadowBlur  = ps_px * 0.6;
+  octx2.shadowColor = 'rgba(0,180,255,0.1)';
+  octx2.beginPath();
+  octx2.arc(0, 0, ps_px, 0, Math.PI*2);
+  octx2.stroke();
+  octx2.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  MAIN RENDER
+// ════════════════════════════════════════════════════════════════════
 let rendering = false;
 
 async function startRender() {
   if (rendering) return;
   rendering = true;
 
+  const btn = g('btn-render');
+  btn.textContent = '⏹  RENDERING';
+  btn.classList.add('rendering');
+
   resize();
   const p = params();
   updateReadouts(p);
-  g('rs').textContent = 'INITIALISING...';
+  g('status-text').textContent = 'INITIALISING…';
   g('pf').style.width = '0%';
 
   const pw=oW, ph=oH;
-  const imgData = octx.createImageData(pw, ph);
+  const imgData = offCtx.createImageData(pw, ph);
   const data    = imgData.data;
 
-  // ── Camera ────────────────────────────────────────────────────
-  // Camera sits at distance p.dist*M from BH
-  // incl = angle above disk plane (0=edge-on, 90=directly above)
+  // Camera
   const M    = p.M;
-  const camR = p.dist * M;
+  const camR = p.dist*M;
   const incl = p.incl;
-
-  // Camera position: in XY plane of world, tilted by incl
-  // Y = disk normal (vertical), X = horizontal in disk plane
-  const camX =  camR * Math.cos(incl);
-  const camY =  camR * Math.sin(incl);
+  const camX =  camR*Math.cos(incl);
+  const camY =  camR*Math.sin(incl);
   const camZ = 0;
 
-  // Look toward origin
-  const lx = -camX/camR, ly = -camY/camR, lz = 0;
+  const lx=-camX/camR, ly=-camY/camR, lz=0;
 
-  // Right vector: cross(look, worldUp)
-  // worldUp changes with inclination
-  let upX, upY, upZ;
-  if (Math.abs(ly) > 0.98) { upX=0;upY=0;upZ=1; }
-  else { upX=0;upY=0;upZ=1; }
+  let upX=0, upY=0, upZ=1;
+  let rx=ly*upZ-lz*upY, ry=lz*upX-lx*upZ, rz=lx*upY-ly*upX;
+  const rm=Math.sqrt(rx*rx+ry*ry+rz*rz); rx/=rm; ry/=rm; rz/=rm;
+  let ux=ry*lz-rz*ly, uy=rz*lx-rx*lz, uz=rx*ly-ry*lx;
 
-  let rx = ly*upZ - lz*upY;
-  let ry = lz*upX - lx*upZ;
-  let rz = lx*upY - ly*upX;
-  const rm_ = Math.sqrt(rx*rx+ry*ry+rz*rz);
-  rx/=rm_; ry/=rm_; rz/=rm_;
+  const aspect=pw/ph, tanFov=Math.tan(p.fov/2);
+  const chunk=Math.max(1,Math.floor(ph/60));
 
-  // Up = right × look
-  let ux = ry*lz - rz*ly;
-  let uy = rz*lx - rx*lz;
-  let uz = rx*ly - ry*lx;
-
-  const aspect = pw/ph;
-  const tanFov = Math.tan(p.fov/2);
-
-  // ── Render rows in async chunks ───────────────────────────────
-  const chunkSize = Math.max(1, Math.floor(ph/60));
-
-  for (let row0=0; row0<ph; row0+=chunkSize) {
-    for (let py=row0; py<Math.min(ph, row0+chunkSize); py++) {
-      const ny = -((py+.5)/ph - .5)*2;
+  for (let r0=0; r0<ph; r0+=chunk) {
+    for (let py=r0; py<Math.min(ph,r0+chunk); py++) {
+      const ny=-((py+.5)/ph-.5)*2;
       for (let px=0; px<pw; px++) {
-        const nx = ((px+.5)/pw - .5)*2*aspect;
-
-        // Ray direction
-        let ddx = lx + rx*nx*tanFov + ux*ny*tanFov;
-        let ddy = ly + ry*nx*tanFov + uy*ny*tanFov;
-        let ddz = lz + rz*nx*tanFov + uz*ny*tanFov;
-        const dd = Math.sqrt(ddx*ddx+ddy*ddy+ddz*ddz);
+        const nx=((px+.5)/pw-.5)*2*aspect;
+        let ddx=lx+rx*nx*tanFov+ux*ny*tanFov;
+        let ddy=ly+ry*nx*tanFov+uy*ny*tanFov;
+        let ddz=lz+rz*nx*tanFov+uz*ny*tanFov;
+        const dd=Math.sqrt(ddx*ddx+ddy*ddy+ddz*ddz);
         ddx/=dd; ddy/=dd; ddz/=dd;
 
-        const hit = traceRay(camX, camY, camZ, ddx, ddy, ddz, p);
+        const hit=traceRay(camX,camY,camZ,ddx,ddy,ddz,p);
+        let packed=0;
+        if      (hit.hit==='bh')   packed=0;
+        else if (hit.hit==='disk') packed=diskPacked(hit.r,hit.phi,hit.near,p);
+        else                       packed=skyPacked(hit.az,hit.el,p);
 
-        let packed = 0;
-        if      (hit.hit==='bh')   { packed = 0; }
-        else if (hit.hit==='disk') { packed = diskCol(hit.r, hit.phi, hit.near, p); }
-        else                       { packed = skyCol(hit.az, hit.el, p); }
-
-        const idx = (py*pw + px)*4;
-        data[idx]   = (packed>>16)&0xff;
-        data[idx+1] = (packed>>8)&0xff;
-        data[idx+2] =  packed&0xff;
-        data[idx+3] = 255;
+        const idx=(py*pw+px)*4;
+        data[idx]  =(packed>>16)&0xff;
+        data[idx+1]=(packed>>8)&0xff;
+        data[idx+2]= packed&0xff;
+        data[idx+3]=255;
       }
     }
 
-    const pct = Math.min(100, Math.round(((row0+chunkSize)/ph)*100));
-    g('pf').style.width = pct+'%';
-    g('rs').textContent = `RENDERING… ${pct}%`;
-    octx.putImageData(imgData,0,0);
+    const pct=Math.min(100,Math.round(((r0+chunk)/ph)*100));
+    g('pf').style.width=pct+'%';
+    g('status-text').textContent=`RENDERING — ${pct}%`;
+    offCtx.putImageData(imgData,0,0);
     ctx.clearRect(0,0,W,H);
     ctx.drawImage(offscr,0,0,W,H);
     await new Promise(r=>setTimeout(r,0));
   }
 
-  octx.putImageData(imgData,0,0);
+  offCtx.putImageData(imgData,0,0);
   ctx.clearRect(0,0,W,H);
   ctx.drawImage(offscr,0,0,W,H);
+
+  // Post-process bloom
+  drawBloom(p, camX, camY, camR, pw, ph);
+
   g('pf').style.width='100%';
-  g('rs').textContent=`COMPLETE · ${pw}×${ph} · ${p.steps} STEPS/RAY`;
+  g('status-text').textContent=`COMPLETE  ·  ${pw}×${ph}  ·  ${p.steps} STEPS/RAY`;
+  btn.textContent='▶  RENDER';
+  btn.classList.remove('rendering');
   rendering=false;
 }
 
-// ─── Randomize ─────────────────────────────────────────────────────
+// ── Randomize ─────────────────────────────────────────────────────
 function randomize() {
-  const set=(id,v)=>{ g(id).value=v; g(id).dispatchEvent(new Event('input')); };
+  const set=(id,v)=>{g(id).value=v;g(id).dispatchEvent(new Event('input'));};
   set('sm',  (0.4+Math.random()*2.5).toFixed(2));
   set('sd',  (10+Math.random()*45).toFixed(1));
   set('si',  Math.floor(5+Math.random()*84));
@@ -621,7 +1063,7 @@ function randomize() {
   startRender();
 }
 
-// ─── Boot ──────────────────────────────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────
 window.addEventListener('load', ()=>{ resize(); startRender(); });
 </script>
 </body>
