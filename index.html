@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schwarzschild Black Hole — Ray Tracer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#020407;--panel:#05080f;--border:#111d30;
+  --accent:#00d4ff;--accent2:#ff6020;--accent3:#ffc847;
+  --text:#7aa0c4;--textb:#cce0f5;--glow:rgba(0,212,255,.12);
+}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
+  font-family:'Space Mono',monospace;overflow:hidden;user-select:none}
+#app{display:flex;height:100vh;width:100vw}
+#cw{position:relative;flex:1;display:flex;align-items:center;
+  justify-content:center;background:#000;overflow:hidden}
+canvas{display:block;image-rendering:pixelated}
+#oi{position:absolute;top:16px;left:18px;font-family:'Orbitron',monospace;
+  font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--accent);
+  text-shadow:0 0 14px var(--accent);line-height:2;pointer-events:none}
+#rs{position:absolute;bottom:14px;left:18px;font-size:8px;
+  letter-spacing:.12em;color:rgba(0,212,255,.4);pointer-events:none}
+#ch{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:18px;height:18px;pointer-events:none;opacity:.2}
+#ch::before,#ch::after{content:'';position:absolute;background:var(--accent)}
+#ch::before{width:100%;height:1px;top:50%;left:0}
+#ch::after{height:100%;width:1px;left:50%;top:0}
+#pb{position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--border)}
+#pf{height:100%;background:linear-gradient(to right,var(--accent),var(--accent3));
+  width:0%;transition:width .04s;box-shadow:0 0 8px var(--accent)}
+#sb{width:292px;min-width:260px;background:var(--panel);
+  border-left:1px solid var(--border);display:flex;
+  flex-direction:column;overflow-y:auto;overflow-x:hidden}
+#sb::-webkit-scrollbar{width:3px}
+#sb::-webkit-scrollbar-track{background:transparent}
+#sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sh{padding:22px 18px 14px;border-bottom:1px solid var(--border)}
+.sh h1{font-family:'Orbitron',monospace;font-size:12px;font-weight:900;
+  letter-spacing:.22em;color:var(--textb);text-transform:uppercase;margin-bottom:3px}
+.sh p{font-size:8px;letter-spacing:.09em;color:var(--text);opacity:.5;line-height:1.6}
+.sec{padding:16px 18px;border-bottom:1px solid var(--border)}
+.st{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:.2em;
+  color:var(--accent);text-transform:uppercase;margin-bottom:14px;
+  display:flex;align-items:center;gap:8px}
+.st::after{content:'';flex:1;height:1px;
+  background:linear-gradient(to right,var(--accent),transparent);opacity:.25}
+.cr{margin-bottom:14px}
+.cl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.cl span:first-child{font-size:9px;letter-spacing:.07em;color:var(--text)}
+.cl .v{font-size:10px;color:var(--accent);font-weight:700;min-width:52px;text-align:right}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;
+  background:var(--border);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+  border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);
+  border:2px solid var(--bg);cursor:pointer;transition:transform .1s}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.3)}
+.tr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.tr span{font-size:9px;letter-spacing:.07em;color:var(--text)}
+.tog{position:relative;width:34px;height:17px}
+.tog input{opacity:0;width:0;height:0}
+.ts{position:absolute;inset:0;background:var(--border);border-radius:17px;cursor:pointer;transition:background .2s}
+.ts::before{content:'';position:absolute;width:11px;height:11px;left:3px;top:3px;
+  background:var(--text);border-radius:50%;transition:transform .2s,background .2s}
+.tog input:checked+.ts{background:rgba(0,212,255,.2)}
+.tog input:checked+.ts::before{transform:translateX(17px);background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rc{background:rgba(0,212,255,.025);border:1px solid var(--border);border-radius:3px;padding:9px}
+.rc .rl{font-size:7px;letter-spacing:.1em;color:var(--text);opacity:.55;margin-bottom:3px;text-transform:uppercase}
+.rc .rv{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;color:var(--accent3)}
+.br{display:flex;gap:7px;padding:14px 18px}
+button{flex:1;padding:9px;border:1px solid var(--border);background:transparent;
+  color:var(--text);font-family:'Space Mono',monospace;font-size:8px;
+  letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
+  border-radius:2px;transition:all .15s}
+button:hover{border-color:var(--accent);color:var(--accent);
+  background:var(--glow);box-shadow:0 0 10px var(--glow)}
+button.p{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.04)}
+button.p:hover{background:rgba(0,212,255,.12)}
+.leg{padding:12px 18px 18px;font-size:7.5px;letter-spacing:.07em;line-height:2.1;
+  color:var(--text);opacity:.45;border-top:1px solid var(--border);margin-top:auto}
+.leg b{color:var(--accent);font-weight:400}
+.leg .d{color:var(--accent2)}
+.leg .y{color:var(--accent3)}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="cw">
+  <canvas id="c"></canvas>
+  <div id="ch"></div>
+  <div id="oi">
+    SCHWARZSCHILD BLACK HOLE<br>
+    GRAVITATIONAL RAY TRACER<br>
+    <span style="color:var(--text);font-size:8px;opacity:.35">NULL GEODESICS · RK4 INTEGRATION</span>
+  </div>
+  <div id="rs">READY — CLICK RENDER</div>
+  <div id="pb"><div id="pf"></div></div>
+</div>
+<div id="sb">
+  <div class="sh">
+    <h1>Black Hole</h1>
+    <p>Traces photon paths through curved spacetime. Uses Schwarzschild metric null geodesics (Binet equation) with RK4 integration.</p>
+  </div>
+
+  <div class="sec">
+    <div class="st">Spacetime</div>
+    <div class="cr">
+      <div class="cl"><span>Mass (M, G=c=1)</span><span class="v" id="vm">1.00</span></div>
+      <input type="range" id="sm" min="0.3" max="3" step="0.05" value="1">
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Camera Distance</span><span class="v" id="vd">20 M</span></div>
+      <input type="range" id="sd" min="8" max="60" step="0.5" value="20">
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Inclination (° from disk)</span><span class="v" id="vi">80°</span></div>
+      <input type="range" id="si" min="2" max="89" step="1" value="80">
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Field of View</span><span class="v" id="vf">55°</span></div>
+      <input type="range" id="sf" min="15" max="110" step="1" value="55">
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="st">Accretion Disk</div>
+    <div class="tr">
+      <span>Show Disk</span>
+      <label class="tog"><input type="checkbox" id="td" checked><span class="ts"></span></label>
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Inner Radius</span><span class="v" id="vri">6.0 M</span></div>
+      <input type="range" id="sri" min="2.5" max="12" step="0.25" value="6">
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Outer Radius</span><span class="v" id="vro">18 M</span></div>
+      <input type="range" id="sro" min="8" max="45" step="0.5" value="18">
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Brightness</span><span class="v" id="vb">1.0×</span></div>
+      <input type="range" id="sbr" min="0.2" max="5" step="0.1" value="1">
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="st">Effects</div>
+    <div class="tr">
+      <span>Doppler Shift</span>
+      <label class="tog"><input type="checkbox" id="tdop" checked><span class="ts"></span></label>
+    </div>
+    <div class="tr">
+      <span>Relativistic Beaming</span>
+      <label class="tog"><input type="checkbox" id="tbeam" checked><span class="ts"></span></label>
+    </div>
+    <div class="tr">
+      <span>Gravitational Redshift</span>
+      <label class="tog"><input type="checkbox" id="tgrav" checked><span class="ts"></span></label>
+    </div>
+    <div class="tr">
+      <span>Star Field</span>
+      <label class="tog"><input type="checkbox" id="tstars" checked><span class="ts"></span></label>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="st">Render Quality</div>
+    <div class="cr">
+      <div class="cl"><span>Integration Steps</span><span class="v" id="vst">800</span></div>
+      <input type="range" id="sst" min="150" max="2000" step="50" value="800">
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Step Size (Δφ)</span><span class="v" id="vdp">0.016</span></div>
+      <input type="range" id="sdp" min="0.004" max="0.04" step="0.001" value="0.016">
+    </div>
+    <div class="cr">
+      <div class="cl"><span>Resolution Scale</span><span class="v" id="vres">1×</span></div>
+      <input type="range" id="sres" min="1" max="3" step="1" value="1">
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="st">Physics Readout</div>
+    <div class="rg">
+      <div class="rc"><div class="rl">Event Horizon</div><div class="rv" id="reh">2.00 M</div></div>
+      <div class="rc"><div class="rl">Photon Sphere</div><div class="rv" id="rph">3.00 M</div></div>
+      <div class="rc"><div class="rl">ISCO</div><div class="rv" id="risco">6.00 M</div></div>
+      <div class="rc"><div class="rl">r_cam / r_s</div><div class="rv" id="rcam">10.0×</div></div>
+    </div>
+  </div>
+
+  <div class="br">
+    <button class="p" onclick="startRender()">▶ Render</button>
+    <button onclick="randomize()">⟳ Randomize</button>
+  </div>
+
+  <div class="leg">
+    <b>Blue-white</b> — lensed background stars<br>
+    <span class="d">Orange/red</span> — near-side disk (blue-shifted)<br>
+    <span class="y">Yellow/dim</span> — far-side disk (red-shifted)<br>
+    <b>Black</b> — event horizon (r ≤ 2M)
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  SCHWARZSCHILD BLACK HOLE RAY TRACER
+//
+//  Core physics:
+//  ─────────────
+//  Null geodesic in Schwarzschild spacetime (G=c=1):
+//    ds² = -(1-2M/r)dt² + dr²/(1-2M/r) + r²dΩ²
+//
+//  Binet equation for photon orbit (u = 1/r, L = angular momentum):
+//    d²u/dφ² + u = 3M·u²
+//
+//  This is exact for equatorial orbits. We lift to 3D by tracking
+//  the photon's position in the plane defined by its initial
+//  position + velocity vectors (the "orbital plane").
+//
+//  Disk intersection: continuous signed-distance tracking along
+//  the ray path. Sign change = disk crossing.
+//
+//  Effects:
+//  ─────────
+//  • Gravitational redshift: grav = sqrt(1 - 2M/r)
+//  • Orbital Doppler: v_orb = sqrt(M/r),  δ = 1/(1 + v·sin φ)
+//  • Relativistic beaming: I_obs = I_em · δ³  (Penrose-Terrell)
+// ═══════════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, oW, oH, offscr, octx;
+
+// ─── Stars ────────────────────────────────────────────────────────
+const NUM_STARS = 1400;
+const starAz  = new Float32Array(NUM_STARS);
+const starEl  = new Float32Array(NUM_STARS);
+const starB   = new Float32Array(NUM_STARS);
+const starHue = new Float32Array(NUM_STARS);
+const starSz  = new Uint8Array(NUM_STARS);
+
+(function genStars() {
+  for (let i = 0; i < NUM_STARS; i++) {
+    starAz[i]  = (Math.random() * 2 - 1) * Math.PI;
+    starEl[i]  = (Math.random() - 0.5) * Math.PI;
+    starB[i]   = Math.pow(Math.random(), 0.5);
+    starHue[i] = Math.random();
+    starSz[i]  = Math.random() < 0.06 ? 2 : 1;
+  }
+})();
+
+// ─── Resize ───────────────────────────────────────────────────────
+function resize() {
+  const cw = document.getElementById('cw');
+  W = cw.clientWidth; H = cw.clientHeight;
+  canvas.width = W; canvas.height = H;
+  const sc = parseInt(document.getElementById('sres').value) || 1;
+  oW = Math.max(1, Math.floor(W / sc));
+  oH = Math.max(1, Math.floor(H / sc));
+  offscr = document.createElement('canvas');
+  offscr.width = oW; offscr.height = oH;
+  octx = offscr.getContext('2d');
+}
+window.addEventListener('resize', () => { resize(); startRender(); });
+
+// ─── Params ───────────────────────────────────────────────────────
+const g = id => document.getElementById(id);
+function params() {
+  return {
+    M:      +g('sm').value,
+    dist:   +g('sd').value,
+    incl:   +g('si').value * Math.PI/180,
+    fov:    +g('sf').value * Math.PI/180,
+    rin:    +g('sri').value,
+    rout:   +g('sro').value,
+    bright: +g('sbr').value,
+    steps:  +g('sst').value,
+    dphi:   +g('sdp').value,
+    disk:    g('td').checked,
+    doppler: g('tdop').checked,
+    beam:    g('tbeam').checked,
+    grav:    g('tgrav').checked,
+    stars:   g('tstars').checked,
+  };
+}
+
+function updateReadouts(p) {
+  g('reh').textContent   = (2*p.M).toFixed(2)+' M';
+  g('rph').textContent   = (3*p.M).toFixed(2)+' M';
+  g('risco').textContent = (6*p.M).toFixed(2)+' M';
+  g('rcam').textContent  = (p.dist/(2)).toFixed(1)+'×';
+}
+
+// ─── Slider wiring ────────────────────────────────────────────────
+[
+  ['sm','vm',  v=>(+v).toFixed(2)],
+  ['sd','vd',  v=>(+v).toFixed(1)+' M'],
+  ['si','vi',  v=>v+'°'],
+  ['sf','vf',  v=>v+'°'],
+  ['sri','vri',v=>(+v).toFixed(2)+' M'],
+  ['sro','vro',v=>(+v).toFixed(1)+' M'],
+  ['sbr','vb', v=>(+v).toFixed(1)+'×'],
+  ['sst','vst',v=>v],
+  ['sdp','vdp',v=>(+v).toFixed(3)],
+  ['sres','vres',v=>v+'×'],
+].forEach(([id,vid,fmt])=>{
+  g(id).addEventListener('input',()=>{ g(vid).textContent=fmt(g(id).value); });
+});
+g('sres').addEventListener('input', resize);
+
+// ═══════════════════════════════════════════════════════════════════
+//  GEODESIC INTEGRATION
+// ═══════════════════════════════════════════════════════════════════
+
+function traceRay(ox, oy, oz, dx, dy, dz, p) {
+  const M   = p.M;
+  const rs  = 2 * M;
+  const rmax = p.dist * M * 4 + 100;
+
+  // Camera distance
+  const r0 = Math.sqrt(ox*ox + oy*oy + oz*oz);
+  if (r0 < rs) return { hit:'bh' };
+
+  // Unit radial (outward from BH to camera)
+  const rx0 = ox/r0, ry0 = oy/r0, rz0 = oz/r0;
+
+  // cosine of angle between ray direction and inward radial (-rhat)
+  // negative because inward radial is -rhat
+  const cosAlpha = -(dx*rx0 + dy*ry0 + dz*rz0);
+  const sin2Alpha = Math.max(0, 1 - cosAlpha*cosAlpha);
+  const sinAlpha  = Math.sqrt(sin2Alpha);
+
+  // Impact parameter b = r₀ sin(α)
+  const b = r0 * sinAlpha;
+
+  // Near-radial: photon aimed nearly directly at/away from BH
+  if (sinAlpha < 1e-5) {
+    return cosAlpha > 0
+      ? { hit:'bh' }
+      : { hit:'sky', az:Math.atan2(dy,dx), el:Math.asin(Math.max(-1,Math.min(1,dz))), phi:0 };
+  }
+
+  // Critical impact parameter: b_crit = 3√3·M ≈ 5.196·M
+  // Photons with b < b_crit are captured by the BH
+  // (for geodesics starting at infinity; starting at finite r₀ is slightly different)
+
+  // ── Orbital plane basis ──────────────────────────────────────
+  // eR: unit vector from BH toward camera (radial)
+  // eT: unit vector in tangential direction of ray
+  const eRx = rx0, eRy = ry0, eRz = rz0;
+
+  // Transverse component of direction
+  const dotDR = dx*eRx + dy*eRy + dz*eRz;
+  let tx = dx - dotDR*eRx;
+  let ty = dy - dotDR*eRy;
+  let tz = dz - dotDR*eRz;
+  const tm = Math.sqrt(tx*tx+ty*ty+tz*tz);
+  tx/=tm; ty/=tm; tz/=tm;
+  const eTx=tx, eTy=ty, eTz=tz;
+
+  // Position at angle φ: P(φ) = r·(cos(φ)·eR + sin(φ)·eT)
+  // Disk is at z=0 plane.
+  // Z-component of P: Pz(φ) = r·(cos(φ)·eRz + sin(φ)·eTz)
+
+  // ── Binet initial conditions ──────────────────────────────────
+  let u  = 1/r0;                          // u₀ = 1/r₀
+  // du/dφ₀: from the relation dr/dφ = -du/dφ / u²
+  // at start, dr/dφ = r₀·cosα/sinα  (negative if moving inward)
+  // du/dφ = -u²·dr/dφ
+  let du = -(1/(r0*r0)) * (-r0 * cosAlpha / sinAlpha);
+  // If cosAlpha > 0: ray is pointing toward BH, dr/dφ < 0, du/dφ > 0 → u increases → r decreases ✓
+
+  // ── RK4 integration ──────────────────────────────────────────
+  const dPhi = p.dphi;
+  const N    = p.steps;
+  const binet = u_ => 3*M*u_*u_ - u_;  // d²u/dφ²
+
+  let phi = 0;
+  let prevPz = r0 * eRz;  // initial z-component of position
+
+  for (let i = 0; i < N; i++) {
+    // RK4
+    const k1u  = du,            k1du = binet(u);
+    const u2   = u +dPhi*.5*k1u, du2 = du+dPhi*.5*k1du;
+    const k2u  = du2,           k2du = binet(u2);
+    const u3   = u +dPhi*.5*k2u, du3 = du+dPhi*.5*k2du;
+    const k3u  = du3,           k3du = binet(u3);
+    const u4   = u +dPhi*k3u,    du4 = du+dPhi*k3du;
+    const k4u  = du4,           k4du = binet(u4);
+
+    u  += dPhi/6*(k1u  + 2*k2u  + 2*k3u  + k4u);
+    du += dPhi/6*(k1du + 2*k2du + 2*k3du + k4du);
+    phi += dPhi;
+
+    if (!isFinite(u) || u < 0) break;
+    const r = 1/u;
+
+    // Absorbed
+    if (r <= rs*1.01) return { hit:'bh' };
+
+    // Escaped
+    if (r > rmax) {
+      const az = Math.atan2(eTy, eTx) * Math.sign(sinAlpha) + phi*0.18;
+      const el = Math.asin(Math.max(-1,Math.min(1, eTz*Math.sin(phi) + eRz*Math.cos(phi))));
+      return { hit:'sky', az, el, phi };
+    }
+
+    // Disk crossing (z=0 plane)
+    if (p.disk) {
+      const curPz = r*(Math.cos(phi)*eRz + Math.sin(phi)*eTz);
+      if (prevPz * curPz < 0) {
+        // Interpolate crossing radius
+        const t = Math.abs(prevPz) / (Math.abs(prevPz) + Math.abs(curPz));
+        const crossPhi = phi - dPhi*(1-t);
+        const crossU   = u - du*dPhi*(1-t);  // approx
+        const crossR   = 1/Math.max(1e-6, crossU);
+        const rin  = p.rin  * M;
+        const rout = p.rout * M;
+        if (crossR >= rin && crossR <= rout) {
+          return { hit:'disk', r:crossR, phi:crossPhi, near: prevPz > 0 };
+        }
+      }
+      prevPz = curPz;
+    }
+  }
+
+  // Out of steps
+  const az = Math.atan2(eTy,eTx) + phi*0.1;
+  const el = Math.asin(Math.max(-1,Math.min(1,dz)));
+  return { hit:'sky', az, el, phi };
+}
+
+// ─── Sky color ─────────────────────────────────────────────────────
+const STAR_THRESH = 0.038;
+function skyCol(az, el, p) {
+  if (!p.stars) return 0;
+  let best=0, bestH=0;
+  for (let i=0; i<NUM_STARS; i++) {
+    const daz = ((az-starAz[i]+Math.PI*3) % (Math.PI*2)) - Math.PI;
+    const del = el-starEl[i];
+    const d   = Math.sqrt(daz*daz + del*del);
+    const th  = starSz[i]===2 ? STAR_THRESH*1.5 : STAR_THRESH;
+    if (d < th) {
+      const v = (1-d/th)*starB[i];
+      if (v > best) { best=v; bestH=starHue[i]; }
+    }
+  }
+  if (best < 0.01) return 0;
+  // pack RGB
+  let R,G,B;
+  if (bestH<.15){R=180;G=200;B=255;}
+  else if(bestH<.45){R=220;G=225;B=255;}
+  else if(bestH<.65){R=255;G=255;B=240;}
+  else{R=255;G=225;B=170;}
+  return (Math.min(255,R*best)<<16)|(Math.min(255,G*best)<<8)|Math.min(255,B*best);
+}
+
+// ─── Disk color ────────────────────────────────────────────────────
+function diskCol(r, phi, near, p) {
+  const M   = p.M;
+  const rin  = p.rin  * M;
+  const rout = p.rout * M;
+  const t   = Math.max(1e-3, Math.min(1, (r-rin)/(rout-rin)));
+
+  // Temperature: hotter at inner edge (T ~ r^-3/4)
+  const temp = Math.pow(t, -0.7);
+
+  // Gravitational redshift
+  const grav = p.grav ? Math.sqrt(Math.max(0.01, 1 - 2*M/Math.max(2.05*M,r))) : 1;
+
+  // Doppler from Keplerian rotation (disk rotates in equatorial plane)
+  // sin(phi) gives line-of-sight projection
+  const v_orb = Math.sqrt(M / Math.max(M*1.01, r));
+  let doppler = 1;
+  if (p.doppler) {
+    doppler = 1 / (1 + v_orb * Math.sin(phi));
+    if (p.beam) doppler = Math.pow(Math.max(0.01, doppler), 3);
+    doppler = Math.max(0.03, Math.min(6, doppler));
+  }
+
+  let I = temp * grav * doppler * p.bright;
+  if (!near) I *= 0.5;
+
+  // Blackbody color approximation
+  // t=0 (inner): 0.15 → very hot, t=1 (outer): cool red
+  let R,G,B;
+  if (t<0.08){R=210;G=230;B=255;}
+  else if(t<0.2){const f=(t-0.08)/.12;R=Math.round(210+45*f);G=Math.round(230-20*f);B=Math.round(255-90*f);}
+  else if(t<0.4){const f=(t-0.2)/.2;R=255;G=Math.round(210-90*f);B=Math.round(165-120*f);}
+  else if(t<0.65){const f=(t-0.4)/.25;R=255;G=Math.round(120-80*f);B=Math.round(45-35*f);}
+  else{const f=(t-0.65)/.35;R=Math.round(255-70*f);G=Math.round(40-30*f);B=10;}
+
+  // Color-shift for doppler
+  if (p.doppler) {
+    if (doppler>1.3){const bf=Math.min(1,(doppler-1.3)/3);B=Math.min(255,B+Math.round(bf*130));G=Math.min(255,G+Math.round(bf*60));}
+    else if(doppler<0.7){const rf=Math.min(1,(0.7-doppler)/.5);G=Math.max(0,G-Math.round(rf*70));B=Math.max(0,B-Math.round(rf*60));}
+  }
+
+  return (Math.min(255,Math.max(0,Math.round(R*I)))<<16)|
+         (Math.min(255,Math.max(0,Math.round(G*I)))<<8)|
+          Math.min(255,Math.max(0,Math.round(B*I)));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MAIN RENDERER
+// ═══════════════════════════════════════════════════════════════════
+let rendering = false;
+
+async function startRender() {
+  if (rendering) return;
+  rendering = true;
+
+  resize();
+  const p = params();
+  updateReadouts(p);
+  g('rs').textContent = 'INITIALISING...';
+  g('pf').style.width = '0%';
+
+  const pw=oW, ph=oH;
+  const imgData = octx.createImageData(pw, ph);
+  const data    = imgData.data;
+
+  // ── Camera ────────────────────────────────────────────────────
+  // Camera sits at distance p.dist*M from BH
+  // incl = angle above disk plane (0=edge-on, 90=directly above)
+  const M    = p.M;
+  const camR = p.dist * M;
+  const incl = p.incl;
+
+  // Camera position: in XY plane of world, tilted by incl
+  // Y = disk normal (vertical), X = horizontal in disk plane
+  const camX =  camR * Math.cos(incl);
+  const camY =  camR * Math.sin(incl);
+  const camZ = 0;
+
+  // Look toward origin
+  const lx = -camX/camR, ly = -camY/camR, lz = 0;
+
+  // Right vector: cross(look, worldUp)
+  // worldUp changes with inclination
+  let upX, upY, upZ;
+  if (Math.abs(ly) > 0.98) { upX=0;upY=0;upZ=1; }
+  else { upX=0;upY=0;upZ=1; }
+
+  let rx = ly*upZ - lz*upY;
+  let ry = lz*upX - lx*upZ;
+  let rz = lx*upY - ly*upX;
+  const rm_ = Math.sqrt(rx*rx+ry*ry+rz*rz);
+  rx/=rm_; ry/=rm_; rz/=rm_;
+
+  // Up = right × look
+  let ux = ry*lz - rz*ly;
+  let uy = rz*lx - rx*lz;
+  let uz = rx*ly - ry*lx;
+
+  const aspect = pw/ph;
+  const tanFov = Math.tan(p.fov/2);
+
+  // ── Render rows in async chunks ───────────────────────────────
+  const chunkSize = Math.max(1, Math.floor(ph/60));
+
+  for (let row0=0; row0<ph; row0+=chunkSize) {
+    for (let py=row0; py<Math.min(ph, row0+chunkSize); py++) {
+      const ny = -((py+.5)/ph - .5)*2;
+      for (let px=0; px<pw; px++) {
+        const nx = ((px+.5)/pw - .5)*2*aspect;
+
+        // Ray direction
+        let ddx = lx + rx*nx*tanFov + ux*ny*tanFov;
+        let ddy = ly + ry*nx*tanFov + uy*ny*tanFov;
+        let ddz = lz + rz*nx*tanFov + uz*ny*tanFov;
+        const dd = Math.sqrt(ddx*ddx+ddy*ddy+ddz*ddz);
+        ddx/=dd; ddy/=dd; ddz/=dd;
+
+        const hit = traceRay(camX, camY, camZ, ddx, ddy, ddz, p);
+
+        let packed = 0;
+        if      (hit.hit==='bh')   { packed = 0; }
+        else if (hit.hit==='disk') { packed = diskCol(hit.r, hit.phi, hit.near, p); }
+        else                       { packed = skyCol(hit.az, hit.el, p); }
+
+        const idx = (py*pw + px)*4;
+        data[idx]   = (packed>>16)&0xff;
+        data[idx+1] = (packed>>8)&0xff;
+        data[idx+2] =  packed&0xff;
+        data[idx+3] = 255;
+      }
+    }
+
+    const pct = Math.min(100, Math.round(((row0+chunkSize)/ph)*100));
+    g('pf').style.width = pct+'%';
+    g('rs').textContent = `RENDERING… ${pct}%`;
+    octx.putImageData(imgData,0,0);
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(offscr,0,0,W,H);
+    await new Promise(r=>setTimeout(r,0));
+  }
+
+  octx.putImageData(imgData,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(offscr,0,0,W,H);
+  g('pf').style.width='100%';
+  g('rs').textContent=`COMPLETE · ${pw}×${ph} · ${p.steps} STEPS/RAY`;
+  rendering=false;
+}
+
+// ─── Randomize ─────────────────────────────────────────────────────
+function randomize() {
+  const set=(id,v)=>{ g(id).value=v; g(id).dispatchEvent(new Event('input')); };
+  set('sm',  (0.4+Math.random()*2.5).toFixed(2));
+  set('sd',  (10+Math.random()*45).toFixed(1));
+  set('si',  Math.floor(5+Math.random()*84));
+  set('sf',  Math.floor(25+Math.random()*80));
+  set('sri', (3+Math.random()*7).toFixed(2));
+  set('sro', (12+Math.random()*28).toFixed(1));
+  set('sbr', (0.5+Math.random()*3.5).toFixed(1));
+  startRender();
+}
+
+// ─── Boot ──────────────────────────────────────────────────────────
+window.addEventListener('load', ()=>{ resize(); startRender(); });
+</script>
+</body>
+</html>
